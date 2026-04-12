@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { MerchantData } from '../types';
+import { MerchantData, DialogState } from '../types';
 import { updateMerchant } from '../api/merchant';
 import ResponseDialog from './ResponseDialog';
 
@@ -12,24 +12,19 @@ const schema = yup.object({
   merchantId: yup.string().required('Merchant ID is required'),
   contactPersonName: yup.string().required('Contact person name is required'),
   contactPersonEmail: yup.string().email('Invalid email').required('Contact person email is required'),
-  contactPersonPhone: yup.string().required('Contact person phone is required'),
+  contactPersonPhone: yup
+    .string()
+    .required('Contact person phone is required')
+    .matches(/^[+]?[\d\s\-().]{7,20}$/, 'Invalid phone number format'),
   contactPersonRelation: yup.string().required('Contact person relation is required'),
-  incorporationDate: yup.string().required('Incorporation date is required'),
+  incorporationDate: yup
+    .string()
+    .required('Incorporation date is required')
+    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
 }).required();
 
 type FormData = MerchantData & {
   merchantId: string;
-};
-
-type DialogState = {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  type: 'success' | 'error';
-  additionalAction?: {
-    label: string;
-    onClick: () => void;
-  };
 };
 
 export default function SingleUploadForm() {

@@ -1,6 +1,5 @@
 "use client";
 
-import { Toaster } from 'react-hot-toast';
 import UploadTabs from '@/components/UploadTabs';
 
 function Home() {
@@ -18,7 +17,6 @@ function Home() {
           <UploadTabs />
         </div>
       </div>
-      <Toaster position="top-right" />
     </main>
   );
 }

@@ -3,20 +3,10 @@
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { DialogState } from '../types';
 import { updateMultipleMerchants } from '../api/merchant';
 import ExcelTemplateDownload from './ExcelTemplateDownload';
 import ResponseDialog from './ResponseDialog';
-
-type DialogState = {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  type: 'success' | 'error';
-  additionalAction?: {
-    label: string;
-    onClick: () => void;
-  };
-};
 
 interface ExcelRowData {
   [key: string]: string | undefined;
@@ -32,6 +22,7 @@ export default function MultipleUploadForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string>('');
   const [previewData, setPreviewData] = useState<ExcelRowData[]>([]);
+  const [totalRowCount, setTotalRowCount] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dialogState, setDialogState] = useState<DialogState>({
     isOpen: false,
@@ -72,7 +63,8 @@ export default function MultipleUploadForm() {
     setFileName(file.name);
     
     if (file.name !== 'merchant-template.xlsx') {
-      toast.success('For best results, use the provided merchant-template.xlsx file', {
+      toast('For best results, use the provided merchant-template.xlsx file', {
+        icon: '⚠️',
         duration: 5000,
         position: 'top-right',
       });
@@ -84,37 +76,31 @@ export default function MultipleUploadForm() {
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         
-        console.log('Worksheet data:', workbook);
-        
-        const sheetName = workbook.SheetNames.includes('MerchantData') 
-          ? 'MerchantData' 
+        const sheetName = workbook.SheetNames.includes('MerchantData')
+          ? 'MerchantData'
           : workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
+
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:F2');
         const headers: string[] = [];
-        
+
         for (let C = range.s.c; C <= range.e.c; ++C) {
           const cellAddress = { r: 0, c: C };
           const cellRef = XLSX.utils.encode_cell(cellAddress);
-          
+
           if (worksheet[cellRef]) {
             headers.push(worksheet[cellRef].v.toString());
           } else {
             headers.push(`Column${C}`);
           }
         }
-        
-        console.log('Extracted headers:', headers);
-        
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, { 
+
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, {
           header: headers,
           range: 1,
           raw: false,
           defval: ''
         });
-        
-        console.log('Parsed data:', jsonData);
         
         if (jsonData.length === 0) {
           setDialogState({
@@ -153,7 +139,8 @@ export default function MultipleUploadForm() {
           
           return normalizedRow;
         });
-        
+
+        setTotalRowCount(normalizedData.length);
         setPreviewData(normalizedData.slice(0, 5));
       } catch (error) {
         console.error('Error parsing Excel file:', error);
@@ -176,6 +163,7 @@ export default function MultipleUploadForm() {
     }
     setFileName('');
     setPreviewData([]);
+    setTotalRowCount(0);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -370,7 +358,7 @@ export default function MultipleUploadForm() {
               </table>
             </div>
             <p className="mt-2 text-xs text-gray-500 italic">
-              Showing the first {previewData.length} rows of your data. Verify it looks correct before uploading.
+              Showing {previewData.length} of {totalRowCount} row{totalRowCount !== 1 ? 's' : ''}. Verify the data looks correct before uploading.
             </p>
           </div>
         )}
