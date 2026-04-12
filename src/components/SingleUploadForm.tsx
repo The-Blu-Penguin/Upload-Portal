@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { MerchantData, DialogState } from '../types';
+import { MerchantData, DialogState, LEGAL_FORMS, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '../types';
 import { updateMerchant } from '../api/merchant';
 import ResponseDialog from './ResponseDialog';
 
@@ -21,6 +21,15 @@ const schema = yup.object({
     .string()
     .required('Incorporation date is required')
     .matches(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  accountNumber: yup.string().required('Account number is required'),
+  legalForm: yup
+    .string()
+    .oneOf([...LEGAL_FORMS], 'Please select a valid legal form')
+    .required('Legal form is required'),
+  accountType: yup
+    .string()
+    .oneOf([...ACCOUNT_TYPES], 'Please select a valid account type')
+    .required('Account type is required'),
 }).required();
 
 type FormData = MerchantData & {
@@ -50,6 +59,9 @@ export default function SingleUploadForm() {
       contactPersonPhone: '',
       contactPersonRelation: '',
       incorporationDate: '',
+      accountNumber: '',
+      legalForm: '',
+      accountType: '',
     },
   });
 
@@ -198,6 +210,67 @@ export default function SingleUploadForm() {
           />
           {errors.incorporationDate && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.incorporationDate.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="accountNumber" className="block text-sm font-semibold text-gray-800">
+            Account Number
+          </label>
+          <input
+            id="accountNumber"
+            type="text"
+            {...register('accountNumber')}
+            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
+            aria-label="Account Number"
+            placeholder="Enter account number"
+          />
+          {errors.accountNumber && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.accountNumber.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="legalForm" className="block text-sm font-semibold text-gray-800">
+            Legal Form
+          </label>
+          <select
+            id="legalForm"
+            {...register('legalForm')}
+            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
+            aria-label="Legal Form"
+          >
+            <option value="">Select legal form</option>
+            {LEGAL_FORMS.map((form) => (
+              <option key={form} value={form}>
+                {form.charAt(0).toUpperCase() + form.slice(1)}
+              </option>
+            ))}
+          </select>
+          {errors.legalForm && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.legalForm.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="accountType" className="block text-sm font-semibold text-gray-800">
+            Account Type
+          </label>
+          <select
+            id="accountType"
+            {...register('accountType')}
+            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
+            aria-label="Account Type"
+          >
+            <option value="">Select account type</option>
+            {ACCOUNT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {ACCOUNT_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+          {errors.accountType && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.accountType.message}</p>
           )}
         </div>
 

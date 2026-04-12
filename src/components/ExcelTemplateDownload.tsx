@@ -8,26 +8,26 @@ export default function ExcelTemplateDownload() {
 
   const handleDownloadTemplate = () => {
     setIsGenerating(true);
-    
+
     try {
-      // Define column headers with clear naming
+      // Column headers — must match field names expected by the API
       const headers = [
         'merchantId',
         'contactPersonName',
         'contactPersonEmail',
         'contactPersonPhone',
         'contactPersonRelation',
-        'incorporationDate'
+        'incorporationDate',
+        'accountNumber',
+        'legalForm',
+        'accountType',
       ];
-      
-      // Create workbook
+
+      // Create workbook and worksheet from headers
       const workbook = XLSX.utils.book_new();
-      
-      // Create a worksheet with just the headers first
-      // This ensures headers are clearly separated
       const ws = XLSX.utils.aoa_to_sheet([headers]);
-      
-      // Add data rows
+
+      // Sample data rows for reference
       const data = [
         [
           '1480000493',
@@ -35,7 +35,10 @@ export default function ExcelTemplateDownload() {
           'john.doe@example.com',
           '+2348012345678',
           'CEO',
-          '2022-05-15'
+          '2022-05-15',
+          '0123456789',
+          'private',
+          'BANK_ACCOUNT',
         ],
         [
           '1480000789',
@@ -43,51 +46,41 @@ export default function ExcelTemplateDownload() {
           'jane.smith@example.com',
           '0592345678',
           'Manager',
-          '2023-01-20'
+          '2023-01-20',
+          '0987654321',
+          'sole proprietor',
+          'MOBILE_MONEY',
         ],
-        [
-          '', // Empty row template for user data
-          '',
-          '',
-          '',
-          '',
-          ''
-        ]
+        // Empty row as a template for user data
+        ['', '', '', '', '', '', '', '', ''],
       ];
-      
-      // Append the data starting from row 1 (after headers)
+
       XLSX.utils.sheet_add_aoa(ws, data, { origin: 1 });
-      
-      // Set column widths for better readability
-      const columnWidths = [
+
+      // Column widths for readability
+      ws['!cols'] = [
         { wch: 15 }, // merchantId
         { wch: 25 }, // contactPersonName
         { wch: 30 }, // contactPersonEmail
         { wch: 20 }, // contactPersonPhone
         { wch: 20 }, // contactPersonRelation
         { wch: 18 }, // incorporationDate
+        { wch: 18 }, // accountNumber
+        { wch: 18 }, // legalForm
+        { wch: 18 }, // accountType
       ];
-      
-      ws['!cols'] = columnWidths;
-      
-      // Style headers - make them bold and add background color
-      // Removing unused range variable
-      // const range = { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } };
-      
-      // Set header row height
+
+      // Header row height
       if (!ws['!rows']) ws['!rows'] = [];
-      ws['!rows'][0] = { hpt: 25 }; // Set height for header row
-      
-      // Format date cell specifically
-      const dateCellRef = XLSX.utils.encode_cell({ r: 1, c: 5 }); // Second row, sixth column (incorporationDate)
+      ws['!rows'][0] = { hpt: 25 };
+
+      // Format the incorporationDate sample cell
+      const dateCellRef = XLSX.utils.encode_cell({ r: 1, c: 5 });
       if (ws[dateCellRef]) {
-        ws[dateCellRef].z = 'yyyy-mm-dd'; // Set date format
+        ws[dateCellRef].z = 'yyyy-mm-dd';
       }
-      
-      // Add worksheet to workbook
+
       XLSX.utils.book_append_sheet(workbook, ws, 'MerchantData');
-      
-      // Generate Excel file
       XLSX.writeFile(workbook, 'merchant-template.xlsx');
     } catch (error) {
       console.error('Failed to generate template:', error);
@@ -128,8 +121,8 @@ export default function ExcelTemplateDownload() {
         {isGenerating ? 'Generating...' : 'Download Excel Template'}
       </button>
       <p className="mt-1 text-xs text-gray-500">
-        Download a template with the exact columns needed for bulk merchant updates
+        Download a template with all 9 required columns for bulk merchant updates
       </p>
     </div>
   );
-} 
+}

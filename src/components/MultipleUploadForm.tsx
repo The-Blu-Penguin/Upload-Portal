@@ -16,6 +16,9 @@ interface ExcelRowData {
   contactPersonPhone?: string;
   contactPersonRelation?: string;
   incorporationDate?: string;
+  accountNumber?: string;
+  legalForm?: string;
+  accountType?: string;
 }
 
 export default function MultipleUploadForm() {
@@ -114,12 +117,15 @@ export default function MultipleUploadForm() {
         }
         
         const expectedColumns = [
-          'merchantId', 
-          'contactPersonName', 
-          'contactPersonEmail', 
-          'contactPersonPhone', 
-          'contactPersonRelation', 
-          'incorporationDate'
+          'merchantId',
+          'contactPersonName',
+          'contactPersonEmail',
+          'contactPersonPhone',
+          'contactPersonRelation',
+          'incorporationDate',
+          'accountNumber',
+          'legalForm',
+          'accountType',
         ];
         
         const normalizedData = jsonData.map((row: Record<string, string | number>) => {
@@ -329,6 +335,9 @@ export default function MultipleUploadForm() {
                          key === 'contactPersonPhone' ? 'Phone' :
                          key === 'contactPersonRelation' ? 'Relation' :
                          key === 'incorporationDate' ? 'Incorporation Date' :
+                         key === 'accountNumber' ? 'Account Number' :
+                         key === 'legalForm' ? 'Legal Form' :
+                         key === 'accountType' ? 'Account Type' :
                          key}
                       </th>
                     ))}
@@ -394,6 +403,18 @@ export default function MultipleUploadForm() {
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">incorporationDate</p>
               <p className="text-xs text-gray-500 mt-1">Date in YYYY-MM-DD format (e.g., 2023-01-15)</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="font-medium text-xs text-gray-700">accountNumber</p>
+              <p className="text-xs text-gray-500 mt-1">Bank or mobile money account number</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="font-medium text-xs text-gray-700">legalForm</p>
+              <p className="text-xs text-gray-500 mt-1">One of: <code>private</code>, <code>public</code>, <code>sole proprietor</code></p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="font-medium text-xs text-gray-700">accountType</p>
+              <p className="text-xs text-gray-500 mt-1">One of: <code>MOBILE_MONEY</code>, <code>BANK_ACCOUNT</code></p>
             </div>
           </div>
           <p className="mt-3 text-xs text-gray-500 italic">
