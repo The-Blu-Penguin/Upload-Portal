@@ -24,12 +24,20 @@ const schema = yup.object({
   accountNumber: yup.string().required('Account number is required'),
   legalForm: yup
     .string()
-    .oneOf([...LEGAL_FORMS], 'Please select a valid legal form')
-    .required('Legal form is required'),
+    .required('Legal form is required')
+    .test(
+      'valid-legal-form',
+      'Please select a valid legal form',
+      (val) => !!val && (LEGAL_FORMS as readonly string[]).includes(val)
+    ),
   accountType: yup
     .string()
-    .oneOf([...ACCOUNT_TYPES], 'Please select a valid account type')
-    .required('Account type is required'),
+    .required('Account type is required')
+    .test(
+      'valid-account-type',
+      'Please select a valid account type',
+      (val) => !!val && (ACCOUNT_TYPES as readonly string[]).includes(val)
+    ),
 }).required();
 
 type FormData = MerchantData & {
