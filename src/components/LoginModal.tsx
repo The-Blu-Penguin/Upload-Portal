@@ -89,7 +89,7 @@ export default function LoginModal({ isOpen, onClose, onSubmit, isLoading }: Log
                       id="username"
                       type="text"
                       {...register('username')}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-white placeholder-gray-400"
                       placeholder="Enter username"
                       autoComplete="username"
                       disabled={isLoading}
@@ -107,7 +107,7 @@ export default function LoginModal({ isOpen, onClose, onSubmit, isLoading }: Log
                       id="password"
                       type="password"
                       {...register('password')}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-white placeholder-gray-400"
                       placeholder="Enter password"
                       autoComplete="current-password"
                       disabled={isLoading}
