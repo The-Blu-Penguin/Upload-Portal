@@ -42,9 +42,7 @@ npm install
 
 3. Set up environment variables:
 Create a `.env.local` file in the root directory with the following variables:
-```
-API_URL=https://staging-loans-api.blupayafrica.com
-```
+`
 
 4. Start the development server:
 ```bash
@@ -57,13 +55,7 @@ npm run dev
 
 The application uses Next.js API routes as a proxy to the external API. Authentication is done via Basic Auth (username/password) provided by the user at runtime.
 
-### Single Merchant KYC Update
-- **Internal Route**: `/api/merchant/[merchantId]/kyc`
-- **External API**: `POST {API_URL}/api/merchant/:merchantId/kyc`
-- **Method**: POST
-- **Auth**: Basic Authentication (username:password)
-- **Body**:
-```json
+
 {
   "merchantId": "MERCH-001",
   "incorporationDate": "2020-01-01",
@@ -75,13 +67,6 @@ The application uses Next.js API routes as a proxy to the external API. Authenti
 }
 ```
 
-### Bulk Merchant KYC Update
-- **Internal Route**: `/api/merchant/bulk-kyc`
-- **External API**: `POST {API_URL}/api/merchant/kyc/bulk`
-- **Method**: POST
-- **Auth**: Basic Authentication (username:password)
-- **Body**:
-```json
 {
   "updates": [
     {
