@@ -4,12 +4,17 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { MerchantData, DialogState, LEGAL_FORMS, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '../types';
-import { updateMerchant } from '../api/merchant';
+import { MerchantData, DialogState, AuthCredentials } from '../types';
+import { updateMerchant } from '../lib/apiClient';
 import ResponseDialog from './ResponseDialog';
+import LoginModal from './LoginModal';
 
 const schema = yup.object({
   merchantId: yup.string().required('Merchant ID is required'),
+  incorporationDate: yup
+    .string()
+    .required('Incorporation date is required')
+    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   contactPersonName: yup.string().required('Contact person name is required'),
   contactPersonEmail: yup.string().email('Invalid email').required('Contact person email is required'),
   contactPersonPhone: yup
@@ -17,27 +22,7 @@ const schema = yup.object({
     .required('Contact person phone is required')
     .matches(/^[+]?[\d\s\-().]{7,20}$/, 'Invalid phone number format'),
   contactPersonRelation: yup.string().required('Contact person relation is required'),
-  incorporationDate: yup
-    .string()
-    .required('Incorporation date is required')
-    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  accountNumber: yup.string().required('Account number is required'),
-  legalForm: yup
-    .string()
-    .required('Legal form is required')
-    .test(
-      'valid-legal-form',
-      'Please select a valid legal form',
-      (val) => !!val && (LEGAL_FORMS as readonly string[]).includes(val)
-    ),
-  accountType: yup
-    .string()
-    .required('Account type is required')
-    .test(
-      'valid-account-type',
-      'Please select a valid account type',
-      (val) => !!val && (ACCOUNT_TYPES as readonly string[]).includes(val)
-    ),
+  companyRegistrationNumber: yup.string().required('Company registration number is required'),
 }).required();
 
 type FormData = MerchantData & {
@@ -46,6 +31,8 @@ type FormData = MerchantData & {
 
 export default function SingleUploadForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [dialogState, setDialogState] = useState<DialogState>({
     isOpen: false,
     title: '',
@@ -62,25 +49,31 @@ export default function SingleUploadForm() {
     resolver: yupResolver(schema),
     defaultValues: {
       merchantId: '',
+      incorporationDate: '',
       contactPersonName: '',
       contactPersonEmail: '',
       contactPersonPhone: '',
       contactPersonRelation: '',
-      incorporationDate: '',
-      accountNumber: '',
-      legalForm: '',
-      accountType: '',
+      companyRegistrationNumber: '',
     },
   });
 
   const handleFormSubmit = async (data: FormData) => {
+    setPendingFormData(data);
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSubmit = async (credentials: AuthCredentials) => {
+    if (!pendingFormData) return;
+
     setIsLoading(true);
     
     try {
-      const { merchantId, ...merchantData } = data;
-      const response = await updateMerchant(merchantId, merchantData);
+      const { merchantId, ...merchantData } = pendingFormData;
+      const response = await updateMerchant(merchantId, merchantData, credentials);
       
       if (response.success) {
+        setShowLoginModal(false);
         setDialogState({
           isOpen: true,
           title: 'Update Successful',
@@ -90,10 +83,12 @@ export default function SingleUploadForm() {
             label: 'Update Another',
             onClick: () => {
               reset();
+              setPendingFormData(null);
             }
           }
         });
       } else {
+        setShowLoginModal(false);
         setDialogState({
           isOpen: true,
           title: 'Update Failed',
@@ -102,6 +97,7 @@ export default function SingleUploadForm() {
         });
       }
     } catch {
+      setShowLoginModal(false);
       setDialogState({
         isOpen: true,
         title: 'Error',
@@ -117,6 +113,11 @@ export default function SingleUploadForm() {
     setDialogState(prev => ({ ...prev, isOpen: false }));
   };
 
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
+    setPendingFormData(null);
+  };
+
   return (
     <>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -129,11 +130,25 @@ export default function SingleUploadForm() {
             type="text"
             {...register('merchantId')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Merchant ID"
             placeholder="Enter merchant ID"
           />
           {errors.merchantId && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.merchantId.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="incorporationDate" className="block text-sm font-semibold text-gray-800">
+            Incorporation Date
+          </label>
+          <input
+            id="incorporationDate"
+            type="date"
+            {...register('incorporationDate')}
+            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
+          />
+          {errors.incorporationDate && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.incorporationDate.message}</p>
           )}
         </div>
 
@@ -146,8 +161,7 @@ export default function SingleUploadForm() {
             type="text"
             {...register('contactPersonName')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Contact Person Name"
-            placeholder="Enter contact person name"
+            placeholder="John Doe"
           />
           {errors.contactPersonName && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.contactPersonName.message}</p>
@@ -163,8 +177,7 @@ export default function SingleUploadForm() {
             type="email"
             {...register('contactPersonEmail')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Contact Person Email"
-            placeholder="example@email.com"
+            placeholder="john.doe@example.com"
           />
           {errors.contactPersonEmail && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.contactPersonEmail.message}</p>
@@ -180,8 +193,7 @@ export default function SingleUploadForm() {
             type="text"
             {...register('contactPersonPhone')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Contact Person Phone"
-            placeholder="Enter phone number"
+            placeholder="0241111111"
           />
           {errors.contactPersonPhone && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.contactPersonPhone.message}</p>
@@ -197,8 +209,7 @@ export default function SingleUploadForm() {
             type="text"
             {...register('contactPersonRelation')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Contact Person Relation"
-            placeholder="e.g., CEO, Manager, etc."
+            placeholder="CEO"
           />
           {errors.contactPersonRelation && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.contactPersonRelation.message}</p>
@@ -206,79 +217,18 @@ export default function SingleUploadForm() {
         </div>
 
         <div>
-          <label htmlFor="incorporationDate" className="block text-sm font-semibold text-gray-800">
-            Incorporation Date
+          <label htmlFor="companyRegistrationNumber" className="block text-sm font-semibold text-gray-800">
+            Company Registration Number
           </label>
           <input
-            id="incorporationDate"
-            type="date"
-            {...register('incorporationDate')}
-            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Incorporation Date"
-          />
-          {errors.incorporationDate && (
-            <p className="mt-1 text-sm text-red-600 font-medium">{errors.incorporationDate.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="accountNumber" className="block text-sm font-semibold text-gray-800">
-            Account Number
-          </label>
-          <input
-            id="accountNumber"
+            id="companyRegistrationNumber"
             type="text"
-            {...register('accountNumber')}
+            {...register('companyRegistrationNumber')}
             className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Account Number"
-            placeholder="Enter account number"
+            placeholder="BN-12345678"
           />
-          {errors.accountNumber && (
-            <p className="mt-1 text-sm text-red-600 font-medium">{errors.accountNumber.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="legalForm" className="block text-sm font-semibold text-gray-800">
-            Legal Form
-          </label>
-          <select
-            id="legalForm"
-            {...register('legalForm')}
-            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Legal Form"
-          >
-            <option value="">Select legal form</option>
-            {LEGAL_FORMS.map((form) => (
-              <option key={form} value={form}>
-                {form.charAt(0).toUpperCase() + form.slice(1)}
-              </option>
-            ))}
-          </select>
-          {errors.legalForm && (
-            <p className="mt-1 text-sm text-red-600 font-medium">{errors.legalForm.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="accountType" className="block text-sm font-semibold text-gray-800">
-            Account Type
-          </label>
-          <select
-            id="accountType"
-            {...register('accountType')}
-            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
-            aria-label="Account Type"
-          >
-            <option value="">Select account type</option>
-            {ACCOUNT_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {ACCOUNT_TYPE_LABELS[type]}
-              </option>
-            ))}
-          </select>
-          {errors.accountType && (
-            <p className="mt-1 text-sm text-red-600 font-medium">{errors.accountType.message}</p>
+          {errors.companyRegistrationNumber && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.companyRegistrationNumber.message}</p>
           )}
         </div>
 
@@ -287,12 +237,18 @@ export default function SingleUploadForm() {
             type="submit"
             disabled={isLoading}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-            aria-label="Submit"
           >
-            {isLoading ? 'Updating...' : 'Update Merchant'}
+            Update Merchant
           </button>
         </div>
       </form>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleCloseLoginModal}
+        onSubmit={handleLoginSubmit}
+        isLoading={isLoading}
+      />
 
       <ResponseDialog
         isOpen={dialogState.isOpen}
@@ -304,4 +260,4 @@ export default function SingleUploadForm() {
       />
     </>
   );
-} 
+}

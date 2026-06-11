@@ -3,22 +3,22 @@
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { DialogState } from '../types';
-import { updateMultipleMerchants } from '../api/merchant';
+import { DialogState, AuthCredentials } from '../types';
+import { updateMultipleMerchants } from '../lib/apiClient';
 import ExcelTemplateDownload from './ExcelTemplateDownload';
 import ResponseDialog from './ResponseDialog';
+import ProgressBar from './ProgressBar';
+import LoginModal from './LoginModal';
 
 interface ExcelRowData {
   [key: string]: string | undefined;
   merchantId?: string;
+  incorporationDate?: string;
   contactPersonName?: string;
   contactPersonEmail?: string;
   contactPersonPhone?: string;
   contactPersonRelation?: string;
-  incorporationDate?: string;
-  accountNumber?: string;
-  legalForm?: string;
-  accountType?: string;
+  companyRegistrationNumber?: string;
 }
 
 export default function MultipleUploadForm() {
@@ -27,6 +27,10 @@ export default function MultipleUploadForm() {
   const [previewData, setPreviewData] = useState<ExcelRowData[]>([]);
   const [totalRowCount, setTotalRowCount] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>({
     isOpen: false,
     title: '',
@@ -118,14 +122,12 @@ export default function MultipleUploadForm() {
         
         const expectedColumns = [
           'merchantId',
+          'incorporationDate',
           'contactPersonName',
           'contactPersonEmail',
           'contactPersonPhone',
           'contactPersonRelation',
-          'incorporationDate',
-          'accountNumber',
-          'legalForm',
-          'accountType',
+          'companyRegistrationNumber',
         ];
         
         const normalizedData = jsonData.map((row: Record<string, string | number>) => {
@@ -184,11 +186,72 @@ export default function MultipleUploadForm() {
       return;
     }
     
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSubmit = async (credentials: AuthCredentials) => {
+    if (!fileInputRef.current?.files?.[0]) return;
+    
     setIsLoading(true);
+    setUploadProgress(0);
+    setRetryCount(0);
+    setUploadStatus('Preparing upload...');
+    
+    // Simulate initial progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev < 20) return prev + 5;
+        if (prev < 80) return prev + 2;
+        return prev;
+      });
+    }, 200);
     
     try {
       const file = fileInputRef.current.files[0];
-      const response = await updateMultipleMerchants(file);
+      
+      setUploadStatus('Uploading file...');
+      setUploadProgress(30);
+      
+      // Custom retry config with progress tracking
+      const retryConfig = {
+        maxRetries: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        backoffMultiplier: 2,
+      };
+      
+      // Track retry attempts
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        try {
+          const response = await originalFetch(...args);
+          if (!response.ok && response.status >= 500) {
+            setRetryCount(prev => {
+              const newCount = prev + 1;
+              setUploadStatus(`Retrying upload (attempt ${newCount})...`);
+              return newCount;
+            });
+          }
+          return response;
+        } catch (error) {
+          setRetryCount(prev => {
+            const newCount = prev + 1;
+            setUploadStatus(`Connection error. Retrying (attempt ${newCount})...`);
+            return newCount;
+          });
+          throw error;
+        }
+      };
+      
+      setUploadProgress(50);
+      const response = await updateMultipleMerchants(file, credentials, retryConfig);
+      
+      // Restore original fetch
+      window.fetch = originalFetch;
+      
+      clearInterval(progressInterval);
+      setUploadStatus('Processing response...');
+      setUploadProgress(90);
       
       // Check if the API response includes status or statusCode
       const isSuccessResponse = 
@@ -196,21 +259,31 @@ export default function MultipleUploadForm() {
         response.status === 200 || 
         response.statusCode === 200;
       
+      setUploadProgress(100);
+      setShowLoginModal(false);
+      
       if (isSuccessResponse) {
-        setDialogState({
-          isOpen: true,
-          title: 'Upload Successful',
-          message: 'Your merchants were successfully updated.',
-          type: 'success',
-          additionalAction: {
-            label: 'Upload Another',
-            onClick: () => {
-              resetFileInput();
+        setUploadStatus('Upload complete!');
+        setTimeout(() => {
+          setDialogState({
+            isOpen: true,
+            title: 'Upload Successful',
+            message: `Successfully updated ${totalRowCount} merchant${totalRowCount !== 1 ? 's' : ''}.`,
+            type: 'success',
+            additionalAction: {
+              label: 'Upload Another',
+              onClick: () => {
+                resetFileInput();
+                setUploadProgress(0);
+                setUploadStatus('');
+                setRetryCount(0);
+              }
             }
-          }
-        });
+          });
+        }, 500);
         resetFileInput();
       } else {
+        setUploadStatus('Upload failed');
         // If the response contains an error array, show the first error message
         const errorMessage = 
           response.errors && response.errors.length > 0 
@@ -223,18 +296,27 @@ export default function MultipleUploadForm() {
           message: errorMessage,
           type: 'error',
         });
+        setUploadProgress(0);
       }
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Upload error:', error);
+      setUploadStatus('Upload failed');
+      setShowLoginModal(false);
       setDialogState({
         isOpen: true,
         title: 'Error',
         message: 'An unexpected error occurred. Please try again later.',
         type: 'error',
       });
+      setUploadProgress(0);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
   };
 
   const handleCloseDialog = () => {
@@ -315,6 +397,17 @@ export default function MultipleUploadForm() {
           </div>
         </form>
 
+        {isLoading && (
+          <div className="mt-4">
+            <ProgressBar 
+              progress={uploadProgress} 
+              status={uploadStatus}
+              showRetry={retryCount > 0}
+              retryCount={retryCount}
+            />
+          </div>
+        )}
+
         {previewData.length > 0 && (
           <div className="mt-6">
             <h3 className="text-sm font-medium text-gray-700">Preview of Merchant Data</h3>
@@ -330,14 +423,12 @@ export default function MultipleUploadForm() {
                         style={{ minWidth: '120px' }}
                       >
                         {key === 'merchantId' ? 'Merchant ID' :
-                         key === 'contactPersonName' ? 'Contact Name' :
-                         key === 'contactPersonEmail' ? 'Email' :
-                         key === 'contactPersonPhone' ? 'Phone' :
-                         key === 'contactPersonRelation' ? 'Relation' :
                          key === 'incorporationDate' ? 'Incorporation Date' :
-                         key === 'accountNumber' ? 'Account Number' :
-                         key === 'legalForm' ? 'Legal Form' :
-                         key === 'accountType' ? 'Account Type' :
+                         key === 'contactPersonName' ? 'Contact Name' :
+                         key === 'contactPersonEmail' ? 'Contact Email' :
+                         key === 'contactPersonPhone' ? 'Contact Phone' :
+                         key === 'contactPersonRelation' ? 'Relation' :
+                         key === 'companyRegistrationNumber' ? 'Company Reg #' :
                          key}
                       </th>
                     ))}
@@ -381,7 +472,10 @@ export default function MultipleUploadForm() {
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">merchantId</p>
               <p className="text-xs text-gray-500 mt-1">Required field to identify the merchant</p>
-              <p className="text-xs text-gray-500 mt-1">Format: 10-digit number (e.g., 1480000000)</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="font-medium text-xs text-gray-700">incorporationDate</p>
+              <p className="text-xs text-gray-500 mt-1">Date in YYYY-MM-DD format (e.g., 2020-01-01)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">contactPersonName</p>
@@ -393,28 +487,15 @@ export default function MultipleUploadForm() {
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">contactPersonPhone</p>
-              <p className="text-xs text-gray-500 mt-1">Phone number with or without country code</p>
-              <p className="text-xs text-gray-500 mt-1">Examples: 0592345678</p>
+              <p className="text-xs text-gray-500 mt-1">Phone number (e.g., 0241111111)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">contactPersonRelation</p>
-              <p className="text-xs text-gray-500 mt-1">Relationship to the merchant (CEO, Director, etc.)</p>
+              <p className="text-xs text-gray-500 mt-1">Relationship to merchant (CEO, Director, etc.)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">incorporationDate</p>
-              <p className="text-xs text-gray-500 mt-1">Date in YYYY-MM-DD format (e.g., 2023-01-15)</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">accountNumber</p>
-              <p className="text-xs text-gray-500 mt-1">Bank or mobile money account number</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">legalForm</p>
-              <p className="text-xs text-gray-500 mt-1">One of: <code>private</code>, <code>public</code>, <code>sole proprietor</code></p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">accountType</p>
-              <p className="text-xs text-gray-500 mt-1">One of: <code>MOBILE_MONEY</code>, <code>BANK_ACCOUNT</code></p>
+              <p className="font-medium text-xs text-gray-700">companyRegistrationNumber</p>
+              <p className="text-xs text-gray-500 mt-1">Official company registration number (e.g., BN-12345678)</p>
             </div>
           </div>
           <p className="mt-3 text-xs text-gray-500 italic">
@@ -422,6 +503,13 @@ export default function MultipleUploadForm() {
           </p>
         </div>
       </div>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleCloseLoginModal}
+        onSubmit={handleLoginSubmit}
+        isLoading={isLoading}
+      />
 
       <ResponseDialog
         isOpen={dialogState.isOpen}
