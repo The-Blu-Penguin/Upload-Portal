@@ -95,40 +95,54 @@ export default function ResponseDialog({
                 </div>
 
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                  {additionalAction && (
-                    <button
-                      type="button"
-                      className={`inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:col-start-2 sm:text-sm ${
-                        type === 'success'
-                          ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                          : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
-                      }`}
-                      onClick={() => {
-                        additionalAction.onClick();
-                        onClose();
-                      }}
-                    >
-                      {additionalAction.label}
-                    </button>
+                  {type === 'error' ? (
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
+                        onClick={onClose}
+                        ref={closeButtonRef}
+                      >
+                        Try Again
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:col-start-1 sm:mt-0 sm:text-sm"
+                        onClick={onClose}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {additionalAction && (
+                        <button
+                          type="button"
+                          className="inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:col-start-2 sm:text-sm"
+                          onClick={() => {
+                            additionalAction.onClick();
+                            onClose();
+                          }}
+                        >
+                          {additionalAction.label}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={`mt-3 inline-flex w-full justify-center rounded-md border ${
+                          additionalAction ? 'sm:col-start-1 sm:mt-0' : ''
+                        } ${
+                          additionalAction
+                            ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500'
+                            : 'border-transparent bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+                        } px-4 py-2 text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm`}
+                        onClick={onClose}
+                        ref={closeButtonRef}
+                      >
+                        {additionalAction ? 'Close' : 'Continue'}
+                      </button>
+                    </>
                   )}
-                  <button
-                    type="button"
-                    className={`mt-3 inline-flex w-full justify-center rounded-md border ${
-                      additionalAction ? 'sm:col-start-1 sm:mt-0' : ''
-                    } ${
-                      type === 'success'
-                        ? additionalAction
-                          ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500'
-                          : 'border-transparent bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
-                        : 'border-transparent bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
-                    } px-4 py-2 text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm`}
-                    onClick={onClose}
-                    ref={closeButtonRef}
-                  >
-                    {type === 'success'
-                      ? additionalAction ? 'Close' : 'Continue'
-                      : 'Try Again'}
-                  </button>
                 </div>
               </DialogPanel>
             </TransitionChild>
