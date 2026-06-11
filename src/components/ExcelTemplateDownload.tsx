@@ -13,14 +13,12 @@ export default function ExcelTemplateDownload() {
       // Column headers — must match field names expected by the API
       const headers = [
         'merchantId',
+        'incorporationDate',
         'contactPersonName',
         'contactPersonEmail',
         'contactPersonPhone',
         'contactPersonRelation',
-        'incorporationDate',
-        'accountNumber',
-        'legalForm',
-        'accountType',
+        'companyRegistrationNumber',
       ];
 
       // Create workbook and worksheet from headers
@@ -30,29 +28,33 @@ export default function ExcelTemplateDownload() {
       // Sample data rows for reference
       const data = [
         [
-          '1480000493',
+          'MERCH-001',
+          '2020-01-01',
           'John Doe',
           'john.doe@example.com',
-          '+2348012345678',
+          '0241111111',
           'CEO',
-          '2022-05-15',
-          '0123456789',
-          'private',
-          'BANK_ACCOUNT',
+          'BN-12345678',
         ],
         [
-          '1480000789',
+          'MERCH-002',
+          '2021-06-15',
           'Jane Smith',
           'jane.smith@example.com',
-          '0592345678',
-          'Manager',
-          '2023-01-20',
-          '0987654321',
-          'sole proprietor',
-          'MOBILE_MONEY',
+          '0242222222',
+          'Director',
+          'BN-87654321',
         ],
-        // Empty row as a template for user data
-        ['', '', '', '', '', '', '', '', ''],
+        // Example with only required field (merchantId)
+        [
+          'MERCH-003',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+        ],
       ];
 
       XLSX.utils.sheet_add_aoa(ws, data, { origin: 1 });
@@ -60,22 +62,20 @@ export default function ExcelTemplateDownload() {
       // Column widths for readability
       ws['!cols'] = [
         { wch: 15 }, // merchantId
+        { wch: 15 }, // incorporationDate
         { wch: 25 }, // contactPersonName
         { wch: 30 }, // contactPersonEmail
         { wch: 20 }, // contactPersonPhone
         { wch: 20 }, // contactPersonRelation
-        { wch: 18 }, // incorporationDate
-        { wch: 18 }, // accountNumber
-        { wch: 18 }, // legalForm
-        { wch: 18 }, // accountType
+        { wch: 20 }, // companyRegistrationNumber
       ];
 
       // Header row height
       if (!ws['!rows']) ws['!rows'] = [];
       ws['!rows'][0] = { hpt: 25 };
 
-      // Format the incorporationDate sample cell
-      const dateCellRef = XLSX.utils.encode_cell({ r: 1, c: 5 });
+      // Format the incorporationDate sample cell (column B, row 2)
+      const dateCellRef = XLSX.utils.encode_cell({ r: 1, c: 1 });
       if (ws[dateCellRef]) {
         ws[dateCellRef].z = 'yyyy-mm-dd';
       }
@@ -121,7 +121,7 @@ export default function ExcelTemplateDownload() {
         {isGenerating ? 'Generating...' : 'Download Excel Template'}
       </button>
       <p className="mt-1 text-xs text-gray-500">
-        Download a template with all 9 required columns for bulk merchant updates
+        Download a template with 1 required column (merchantId) and 6 optional KYC fields
       </p>
     </div>
   );

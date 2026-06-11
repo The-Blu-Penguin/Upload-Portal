@@ -6,26 +6,39 @@ if (!API_URL) {
   console.error('API_URL is not defined in environment variables');
 }
 
-// Maximum file size: 5MB
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
+/**
+ * POST /api/merchant/bulk-kyc
+ * 
+ * Proxies bulk merchant KYC updates to the external API
+ * 
+ * Expects JSON body:
+ * {
+ *   username: string,
+ *   password: string,
+ *   updates: Array<{
+ *     merchantId: string (required),
+ *     incorporationDate?: string,
+ *     contactPersonName?: string,
+ *     contactPersonEmail?: string,
+ *     contactPersonPhone?: string,
+ *     contactPersonRelation?: string,
+ *     companyRegistrationNumber?: string
+ *   }>
+ * }
+ * 
+ * External API endpoint: POST {API_URL}/api/merchant/kyc/bulk
+ */
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
+    const body = await request.json();
+    const { username, password, updates } = body;
 
-    if (!file) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'No file provided',
-          statusCode: 400,
-        },
-        { status: 400 }
-      );
-    }
+    console.log('Bulk-KYC Route - Received body:', JSON.stringify({ 
+      username: username ? '***' : undefined, 
+      password: password ? '***' : undefined,
+      updatesCount: updates?.length,
+      updates: updates
+    }, null, 2));
 
     if (!username || !password) {
       return NextResponse.json(
@@ -38,28 +51,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          message: `File size exceeds the maximum limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+          message: 'Updates array is required and must contain at least one merchant',
           statusCode: 400,
         },
         { status: 400 }
       );
     }
 
-    // Validate file type
-    const validTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
-    ];
-    if (!validTypes.includes(file.type)) {
+    // Validate each update has merchantId
+    const invalidUpdates = updates.filter((update: { merchantId?: string }) => !update.merchantId);
+    if (invalidUpdates.length > 0) {
+      console.log('Invalid updates found:', invalidUpdates);
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid file type. Please upload an Excel file (.xlsx or .xls)',
+          message: 'Each update must include a merchantId',
           statusCode: 400,
         },
         { status: 400 }
@@ -81,16 +91,13 @@ export async function POST(request: NextRequest) {
     // Create Basic Auth header
     const credentials = Buffer.from(`${username}:${password}`).toString('base64');
 
-    // Forward the file to the external API
-    const apiFormData = new FormData();
-    apiFormData.append('file', file);
-
-    const response = await fetch(`${API_URL}/api/merchant/bulk-kyc`, {
+    const response = await fetch(`${API_URL}/api/merchant/kyc/bulk`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Basic ${credentials}`,
       },
-      body: apiFormData,
+      body: JSON.stringify({ updates }),
     });
 
     const data = await response.json();

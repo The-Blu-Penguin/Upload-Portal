@@ -25,6 +25,7 @@ export default function MultipleUploadForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string>('');
   const [previewData, setPreviewData] = useState<ExcelRowData[]>([]);
+  const [parsedExcelData, setParsedExcelData] = useState<ExcelRowData[]>([]);
   const [totalRowCount, setTotalRowCount] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -149,6 +150,7 @@ export default function MultipleUploadForm() {
         });
 
         setTotalRowCount(normalizedData.length);
+        setParsedExcelData(normalizedData);
         setPreviewData(normalizedData.slice(0, 5));
       } catch (error) {
         console.error('Error parsing Excel file:', error);
@@ -171,16 +173,17 @@ export default function MultipleUploadForm() {
     }
     setFileName('');
     setPreviewData([]);
+    setParsedExcelData([]);
     setTotalRowCount(0);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!fileInputRef.current?.files?.[0]) {
+    if (!parsedExcelData || parsedExcelData.length === 0) {
       setDialogState({
         isOpen: true,
-        title: 'Missing File',
-        message: 'Please select an Excel file before uploading.',
+        title: 'Missing Data',
+        message: 'Please select and parse an Excel file before uploading.',
         type: 'error',
       });
       return;
@@ -190,7 +193,7 @@ export default function MultipleUploadForm() {
   };
 
   const handleLoginSubmit = async (credentials: AuthCredentials) => {
-    if (!fileInputRef.current?.files?.[0]) return;
+    if (!parsedExcelData || parsedExcelData.length === 0) return;
     
     setIsLoading(true);
     setUploadProgress(0);
@@ -207,9 +210,7 @@ export default function MultipleUploadForm() {
     }, 200);
     
     try {
-      const file = fileInputRef.current.files[0];
-      
-      setUploadStatus('Uploading file...');
+      setUploadStatus('Preparing data...');
       setUploadProgress(30);
       
       // Custom retry config with progress tracking
@@ -244,7 +245,51 @@ export default function MultipleUploadForm() {
       };
       
       setUploadProgress(50);
-      const response = await updateMultipleMerchants(file, credentials, retryConfig);
+      
+      // Convert parsed Excel data to updates array
+      const updates = parsedExcelData
+        .map((row: ExcelRowData) => {
+          const merchantId = (row.merchantId || '').trim();
+          
+          // Skip rows without merchantId
+          if (!merchantId) {
+            return null;
+          }
+          
+          const update: { merchantId: string; [key: string]: string } = {
+            merchantId,
+          };
+          
+          // Only include fields that have values
+          if (row.incorporationDate) update.incorporationDate = row.incorporationDate.trim();
+          if (row.contactPersonName) update.contactPersonName = row.contactPersonName.trim();
+          if (row.contactPersonEmail) update.contactPersonEmail = row.contactPersonEmail.trim();
+          if (row.contactPersonPhone) update.contactPersonPhone = row.contactPersonPhone.trim();
+          if (row.contactPersonRelation) update.contactPersonRelation = row.contactPersonRelation.trim();
+          if (row.companyRegistrationNumber) update.companyRegistrationNumber = row.companyRegistrationNumber.trim();
+          
+          return update;
+        })
+        .filter((update): update is { merchantId: string; [key: string]: string } => update !== null);
+      
+      // Validate we have at least one valid update
+      if (updates.length === 0) {
+        clearInterval(progressInterval);
+        setShowLoginModal(false);
+        setDialogState({
+          isOpen: true,
+          title: 'Invalid Data',
+          message: 'No valid merchant records found. Each row must have a merchantId.',
+          type: 'error',
+        });
+        setUploadProgress(0);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Sending updates:', JSON.stringify(updates, null, 2));
+      
+      const response = await updateMultipleMerchants(updates, credentials, retryConfig);
       
       // Restore original fetch
       window.fetch = originalFetch;
@@ -464,42 +509,42 @@ export default function MultipleUploadForm() {
         )}
 
         <div className="mt-4 border-t border-gray-200 pt-4">
-          <h3 className="text-sm font-medium text-gray-700">Required Columns</h3>
+          <h3 className="text-sm font-medium text-gray-700">Field Requirements</h3>
           <p className="mt-1 text-xs text-gray-500">
-            Your Excel file must include these exact columns:
+            <strong>merchantId</strong> is required. All other fields are optional:
           </p>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">merchantId</p>
-              <p className="text-xs text-gray-500 mt-1">Required field to identify the merchant</p>
+            <div className="bg-red-50 p-3 rounded border border-red-200">
+              <p className="font-medium text-xs text-red-900">merchantId ⚠️ REQUIRED</p>
+              <p className="text-xs text-red-700 mt-1">Must be provided to identify the merchant</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">incorporationDate</p>
+              <p className="font-medium text-xs text-gray-700">incorporationDate (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Date in YYYY-MM-DD format (e.g., 2020-01-01)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">contactPersonName</p>
+              <p className="font-medium text-xs text-gray-700">contactPersonName (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Full name of the contact person</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">contactPersonEmail</p>
+              <p className="font-medium text-xs text-gray-700">contactPersonEmail (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Valid email address of the contact person</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">contactPersonPhone</p>
+              <p className="font-medium text-xs text-gray-700">contactPersonPhone (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Phone number (e.g., 0241111111)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">contactPersonRelation</p>
+              <p className="font-medium text-xs text-gray-700">contactPersonRelation (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Relationship to merchant (CEO, Director, etc.)</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
-              <p className="font-medium text-xs text-gray-700">companyRegistrationNumber</p>
+              <p className="font-medium text-xs text-gray-700">companyRegistrationNumber (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Official company registration number (e.g., BN-12345678)</p>
             </div>
           </div>
           <p className="mt-3 text-xs text-gray-500 italic">
-            Note: Each merchantId must be a valid ID already existing in the system.
+            Note: Each merchantId must be a valid ID already existing in the system. You can update only the fields you need - leave other fields empty.
           </p>
         </div>
       </div>

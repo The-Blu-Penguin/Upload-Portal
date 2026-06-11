@@ -43,8 +43,7 @@ npm install
 3. Set up environment variables:
 Create a `.env.local` file in the root directory with the following variables:
 ```
-NEXT_PUBLIC_API_URL=<your-api-url>
-NEXT_PUBLIC_API_KEY=<your-api-key>
+API_URL=https://staging-loans-api.blupayafrica.com
 ```
 
 4. Start the development server:
@@ -56,38 +55,67 @@ npm run dev
 
 ## API Endpoints
 
-The application communicates with the following API endpoints:
+The application uses Next.js API routes as a proxy to the external API. Authentication is done via Basic Auth (username/password) provided by the user at runtime.
 
-### Single Merchant Update
-- **URL**: `{API_URL}/merchant/update/:merchantId`
-- **Method**: PUT
-- **Auth**: Bearer token (API Key)
+### Single Merchant KYC Update
+- **Internal Route**: `/api/merchant/[merchantId]/kyc`
+- **External API**: `POST {API_URL}/api/merchant/:merchantId/kyc`
+- **Method**: POST
+- **Auth**: Basic Authentication (username:password)
 - **Body**:
 ```json
 {
-  "contactPersonName": "",
-  "contactPersonEmail": "",
-  "contactPersonPhone": "",
-  "contactPersonRelation": "",
-  "incorporationDate": ""
+  "merchantId": "MERCH-001",
+  "incorporationDate": "2020-01-01",
+  "contactPersonName": "John Doe",
+  "contactPersonEmail": "john.doe@example.com",
+  "contactPersonPhone": "0241111111",
+  "contactPersonRelation": "CEO",
+  "companyRegistrationNumber": "BN-12345678"
 }
 ```
 
-### Multiple Merchants Update
-- **URL**: `{API_URL}/merchant/update-multiple`
+### Bulk Merchant KYC Update
+- **Internal Route**: `/api/merchant/bulk-kyc`
+- **External API**: `POST {API_URL}/api/merchant/kyc/bulk`
 - **Method**: POST
-- **Auth**: Bearer token (API Key)
-- **Body**: Excel file (multipart/form-data)
+- **Auth**: Basic Authentication (username:password)
+- **Body**:
+```json
+{
+  "updates": [
+    {
+      "merchantId": "MERCH-001",
+      "contactPersonName": "Jane Smith",
+      "contactPersonPhone": "0242222222"
+    },
+    {
+      "merchantId": "MERCH-002",
+      "contactPersonName": "John Doe",
+      "contactPersonEmail": "john@example.com"
+    }
+  ]
+}
+```
+
+**Note:** Only `merchantId` is required in each update object. All other fields are optional.
 
 ## Excel Template Format
 
 The Excel file for bulk updates should contain the following columns:
-- merchantId
-- contactPersonName
-- contactPersonEmail
-- contactPersonPhone
-- contactPersonRelation
-- incorporationDate (YYYY-MM-DD format)
+
+### Required Column:
+- **merchantId** - Unique merchant identifier (e.g., MERCH-001)
+
+### Optional Columns:
+- incorporationDate - Date in YYYY-MM-DD format (e.g., 2020-01-01)
+- contactPersonName - Full name of the contact person
+- contactPersonEmail - Valid email address
+- contactPersonPhone - Phone number (e.g., 0241111111)
+- contactPersonRelation - Relationship to merchant (CEO, Director, etc.)
+- companyRegistrationNumber - Official company registration number (e.g., BN-12345678)
+
+You can update only the fields you need by leaving other columns empty.
 
 
 ## Build & Deployment

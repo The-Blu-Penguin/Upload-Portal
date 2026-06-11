@@ -119,24 +119,26 @@ export const updateMerchant = async (
 };
 
 /**
- * Updates multiple merchants via file upload with retry logic
+ * Updates multiple merchants via JSON payload with retry logic
  */
 export const updateMultipleMerchants = async (
-  file: File,
+  updates: Array<{ merchantId: string; [key: string]: string }>,
   credentials: AuthCredentials,
   retryConfig?: RetryConfig
 ): Promise<ApiResponse> => {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-
     const response = await fetchWithRetry<ApiResponse>(
       '/api/merchant/bulk-kyc',
       {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          updates,
+          username: credentials.username,
+          password: credentials.password,
+        }),
       },
       retryConfig
     );
