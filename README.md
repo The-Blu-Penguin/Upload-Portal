@@ -4,21 +4,28 @@ A React application for updating merchant information individually or in bulk us
 
 ## Features
 
-- Update a single merchant's details via form submission
-- Bulk update multiple merchants via Excel file upload
-- Excel template download for bulk updates
-- Data validation for both individual and bulk uploads
-- Preview data from uploaded Excel files
+- **Dual Upload Modes:**
+  - Single merchant KYC update via form
+  - Bulk merchant updates via Excel file upload
+- **Authentication:** Secure Basic Auth login per operation
+- **Data Validation:** Client-side validation with Yup schemas
+- **Excel Processing:** Parse and validate Excel files with preview
+- **Progress Tracking:** Real-time upload progress with retry indicators
+- **Retry Logic:** Automatic retry with exponential backoff for failed requests
+- **Responsive Design:** Mobile-friendly interface with Tailwind CSS
 
 ## Technology Stack
 
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- React Hook Form with Yup validation
-- XLSX for Excel file handling
-- Axios for API communication
-- React Hot Toast for notifications
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 |
+| Forms | React Hook Form + Yup |
+| Excel | XLSX.js |
+| HTTP | Native Fetch API |
+| UI Components | Headless UI + Hero Icons |
+| Notifications | React Hot Toast |
 
 ## Setup
 
@@ -82,7 +89,8 @@ The Excel file for bulk updates should contain the following columns:
 - contactPersonRelation
 - incorporationDate (YYYY-MM-DD format)
 
-## Build
+
+## Build & Deployment
 
 To build the application for production:
 ```bash

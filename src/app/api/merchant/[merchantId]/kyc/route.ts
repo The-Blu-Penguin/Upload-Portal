@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_URL || 'https://staging-loans-api.blupayafrica.com';
+const API_URL = process.env.API_URL;
+
+if (!API_URL) {
+  console.error('API_URL is not defined in environment variables');
+}
 
 export async function POST(
   request: NextRequest,
@@ -20,6 +24,18 @@ export async function POST(
           statusCode: 400,
         },
         { status: 400 }
+      );
+    }
+
+    // Validate API_URL is configured
+    if (!API_URL) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Server configuration error: API_URL not set',
+          statusCode: 500,
+        },
+        { status: 500 }
       );
     }
 
