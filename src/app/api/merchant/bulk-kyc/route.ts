@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const apiFormData = new FormData();
     apiFormData.append('file', file);
 
-    const response = await fetch(`${API_URL}/merchant/bulk-kyc`, {
+    const response = await fetch(`${API_URL}/api/merchant/bulk-kyc`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,

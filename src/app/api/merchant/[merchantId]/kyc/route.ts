@@ -26,7 +26,7 @@ export async function POST(
     // Create Basic Auth header
     const credentials = Buffer.from(`${username}:${password}`).toString('base64');
 
-    const response = await fetch(`${API_URL}/merchant/${merchantId}/kyc`, {
+    const response = await fetch(`${API_URL}/api/merchant/${merchantId}/kyc`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
