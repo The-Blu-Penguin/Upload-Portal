@@ -5,6 +5,7 @@ export interface MerchantData {
   contactPersonPhone: string;
   contactPersonRelation: string;
   companyRegistrationNumber: string;
+  ghanaCardId: string;
 }
 
 export interface ApiResponse {

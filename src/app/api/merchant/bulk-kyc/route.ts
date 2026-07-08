@@ -22,7 +22,8 @@ if (!API_URL) {
  *     contactPersonEmail?: string,
  *     contactPersonPhone?: string,
  *     contactPersonRelation?: string,
- *     companyRegistrationNumber?: string
+ *     companyRegistrationNumber?: string,
+ *     ghanaCardId?: string
  *   }>
  * }
  * 

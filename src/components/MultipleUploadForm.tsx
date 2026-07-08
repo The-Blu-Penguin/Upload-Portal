@@ -19,6 +19,7 @@ interface ExcelRowData {
   contactPersonPhone?: string;
   contactPersonRelation?: string;
   companyRegistrationNumber?: string;
+  ghanaCardId?: string;
 }
 
 export default function MultipleUploadForm() {
@@ -129,6 +130,7 @@ export default function MultipleUploadForm() {
           'contactPersonPhone',
           'contactPersonRelation',
           'companyRegistrationNumber',
+          'ghanaCardId',
         ];
         
         const normalizedData = jsonData.map((row: Record<string, string | number>) => {
@@ -267,6 +269,7 @@ export default function MultipleUploadForm() {
           if (row.contactPersonPhone) update.contactPersonPhone = row.contactPersonPhone.trim();
           if (row.contactPersonRelation) update.contactPersonRelation = row.contactPersonRelation.trim();
           if (row.companyRegistrationNumber) update.companyRegistrationNumber = row.companyRegistrationNumber.trim();
+          if (row.ghanaCardId) update.ghanaCardId = row.ghanaCardId.trim();
           
           return update;
         })
@@ -474,6 +477,7 @@ export default function MultipleUploadForm() {
                          key === 'contactPersonPhone' ? 'Contact Phone' :
                          key === 'contactPersonRelation' ? 'Relation' :
                          key === 'companyRegistrationNumber' ? 'Company Reg #' :
+                         key === 'ghanaCardId' ? 'Ghana Card ID' :
                          key}
                       </th>
                     ))}
@@ -541,6 +545,10 @@ export default function MultipleUploadForm() {
             <div className="bg-gray-50 p-3 rounded">
               <p className="font-medium text-xs text-gray-700">companyRegistrationNumber (Optional)</p>
               <p className="text-xs text-gray-500 mt-1">Official company registration number (e.g., BN-12345678)</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <p className="font-medium text-xs text-gray-700">ghanaCardId (Optional)</p>
+              <p className="text-xs text-gray-500 mt-1">Ghana Card ID in GHA-XXXXX format (e.g., GHA-999)</p>
             </div>
           </div>
           <p className="mt-3 text-xs text-gray-500 italic">

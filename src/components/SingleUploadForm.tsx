@@ -23,6 +23,7 @@ const schema = yup.object({
     .matches(/^[+]?[\d\s\-().]{7,20}$/, 'Invalid phone number format'),
   contactPersonRelation: yup.string().required('Contact person relation is required'),
   companyRegistrationNumber: yup.string().required('Company registration number is required'),
+  ghanaCardId: yup.string().required('Ghana Card ID is required'),
 }).required();
 
 type FormData = MerchantData & {
@@ -55,6 +56,7 @@ export default function SingleUploadForm() {
       contactPersonPhone: '',
       contactPersonRelation: '',
       companyRegistrationNumber: '',
+      ghanaCardId: '',
     },
   });
 
@@ -229,6 +231,22 @@ export default function SingleUploadForm() {
           />
           {errors.companyRegistrationNumber && (
             <p className="mt-1 text-sm text-red-600 font-medium">{errors.companyRegistrationNumber.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="ghanaCardId" className="block text-sm font-semibold text-gray-800">
+            Ghana Card ID
+          </label>
+          <input
+            id="ghanaCardId"
+            type="text"
+            {...register('ghanaCardId')}
+            className="mt-1 block w-full px-4 py-3 text-gray-900 font-medium bg-white rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-30"
+            placeholder="GHA-999"
+          />
+          {errors.ghanaCardId && (
+            <p className="mt-1 text-sm text-red-600 font-medium">{errors.ghanaCardId.message}</p>
           )}
         </div>
 

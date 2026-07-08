@@ -19,6 +19,7 @@ export default function ExcelTemplateDownload() {
         'contactPersonPhone',
         'contactPersonRelation',
         'companyRegistrationNumber',
+        'ghanaCardId',
       ];
 
       // Create workbook and worksheet from headers
@@ -35,6 +36,7 @@ export default function ExcelTemplateDownload() {
           '0241111111',
           'CEO',
           'BN-12345678',
+          'GHA-999',
         ],
         [
           'MERCH-002',
@@ -44,10 +46,12 @@ export default function ExcelTemplateDownload() {
           '0242222222',
           'Director',
           'BN-87654321',
+          'GHA-888',
         ],
         // Example with only required field (merchantId)
         [
           'MERCH-003',
+          '',
           '',
           '',
           '',
@@ -68,6 +72,7 @@ export default function ExcelTemplateDownload() {
         { wch: 20 }, // contactPersonPhone
         { wch: 20 }, // contactPersonRelation
         { wch: 20 }, // companyRegistrationNumber
+        { wch: 15 }, // ghanaCardId
       ];
 
       // Header row height
@@ -121,7 +126,7 @@ export default function ExcelTemplateDownload() {
         {isGenerating ? 'Generating...' : 'Download Excel Template'}
       </button>
       <p className="mt-1 text-xs text-gray-500">
-        Download a template with 1 required column (merchantId) and 6 optional KYC fields
+        Download a template with 1 required column (merchantId) and 7 optional KYC fields
       </p>
     </div>
   );
